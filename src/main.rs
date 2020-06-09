@@ -10,6 +10,7 @@ use specs::prelude::*;
 
 mod ecs;
 mod linear;
+mod modding;
 mod physics;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -22,6 +23,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut lua = rlua::Lua::new();
     create_interface(&mut lua)?;
+
+    let mod_hub = modding::ModHub::new();
+    println!("{}", mod_hub.settings());
 
     run_maths_example(&mut lua)?;
     run_ecs_example(&mut lua, &mut world)?;

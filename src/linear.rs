@@ -1,8 +1,7 @@
-
-use rlua::UserDataMethods;
-use specs::prelude::*;
 use nalgebra as na;
-use rlua::{UserData, MetaMethod};
+use rlua::UserDataMethods;
+use rlua::{MetaMethod, UserData};
+use specs::prelude::*;
 use std::fmt;
 
 #[derive(Copy, Clone)]
@@ -56,6 +55,10 @@ impl UserData for Vector3f {
         methods.add_meta_function(MetaMethod::Add, |_, (vec1, vec2): (Vector3f, Vector3f)| {
             Ok(Vector3f::from(vec1.0 + vec2.0))
         });
+
+        methods.add_meta_function(MetaMethod::ToString, |_, vec: Vector3f| {
+            Ok(format!("{:?}", vec))
+        });
     }
 }
 
@@ -74,9 +77,7 @@ impl Default for Transform {
 
 impl UserData for Transform {
     fn add_methods<'lua, T: UserDataMethods<'lua, Self>>(methods: &mut T) {
-        methods.add_method("get_position", |_, transform, ()| {
-            Ok(transform.position)
-        });
+        methods.add_method("get_position", |_, transform, ()| Ok(transform.position));
 
         methods.add_method_mut("set_position", |_, transform, position: Vector3f| {
             transform.position = position;

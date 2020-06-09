@@ -1004,6 +1004,7 @@ dependencies = [
  "glutin",
  "nalgebra",
  "rlua",
+ "shred-derive",
  "slog",
  "specs",
  "specs-derive",
@@ -1046,6 +1047,17 @@ dependencies = [
  "rayon",
  "smallvec 1.4.0",
  "tynm",
+]
+
+[[package]]
+name = "shred-derive"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1f37080f2751fbf091dbdebaa95bd6cf9dbf74ad1d50396b1908518a1747fdf"
+dependencies = [
+ "proc-macro2 1.0.18",
+ "quote 1.0.7",
+ "syn",
 ]
 
 [[package]]

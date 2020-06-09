@@ -1,0 +1,18 @@
+[package]
+name = "scripting"
+version = "0.1.0"
+authors = ["Willem Victor <willem.victor@takealot.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gfx = "0.18"
+gfx_device_gl = "0.16"
+gfx_window_glutin = "0.31"
+glutin = "0.21"
+specs-derive = "0.4"
+nalgebra = "0.21"
+rlua = "0.17"
+slog = "2.5"
+specs = "0.16"

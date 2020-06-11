@@ -74,6 +74,10 @@ impl UserData for Vector3f {
             Ok(Vector3f::from(vec1.0 + vec2.0))
         });
 
+        methods.add_meta_function(MetaMethod::Mul, |_, (vec1, scalar): (Vector3f, f32)| {
+            Ok(Vector3f::from(vec1.0 * scalar))
+        });
+
         methods.add_meta_function(MetaMethod::ToString, |_, vec: Vector3f| {
             Ok(format!("{:?}", vec))
         });

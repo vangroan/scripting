@@ -1,6 +1,6 @@
 //! Interface between lua and specs
 
-use crate::{colors, linear, shape};
+use crate::{camera, colors, delta_time, linear, shape};
 use rlua::{MetaMethod, UserData, UserDataMethods};
 use specs::prelude::*;
 use std::marker::PhantomData;
@@ -56,6 +56,20 @@ where
                 Ok(None)
             }
         });
+
+        methods.add_method("get_current_camera", |_, proxy, ()| {
+            Ok(EntityId::from(proxy.data.current_camera.entity()))
+        });
+
+        methods.add_method_mut(
+            "set_camera_eye",
+            |_, proxy, (entity_id, vector): (EntityId, linear::Vector3f)| {
+                if let Some(mut camera) = proxy.data.cameras.get_mut(entity_id.into()) {
+                    camera.eye = vector;
+                }
+                Ok(())
+            },
+        );
     }
 }
 
@@ -63,8 +77,11 @@ where
 pub struct ScriptSystemData<'a> {
     entities: specs::Entities<'a>,
     lazy: Read<'a, LazyUpdate>,
+    delta_time: ReadExpect<'a, delta_time::DeltaTime>,
+    current_camera: ReadExpect<'a, camera::CurrentCamera>,
     transforms: WriteStorage<'a, linear::Transform>,
     squares: WriteStorage<'a, shape::Square<gfx_device::Resources>>,
+    cameras: WriteStorage<'a, camera::Camera2D>,
 }
 
 /// New type for specs entity to allow implementing traits.

@@ -13,6 +13,7 @@ use specs::prelude::*;
 
 mod camera;
 mod colors;
+mod delta_time;
 mod device_dim;
 mod draw;
 mod ecs;
@@ -24,8 +25,9 @@ mod shape;
 mod view_port;
 
 use colors::*;
+use delta_time::*;
 use device_dim::*;
-use draw::Drawer;
+use draw::*;
 use graphics::{ColorFormat, DepthFormat};
 use view_port::*;
 
@@ -71,6 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ECS World Setup
     let mut world = World::new();
+    world.insert(DeltaTime::new(std::time::Duration::new(0, 0)));
     world.insert(ViewPort::from_device_dimensions(&device_dimensions));
     world.insert(device_dimensions);
     world.insert(graphics::PsoBundle::new(pso));
@@ -94,13 +97,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", mod_hub.settings());
 
     run_maths_example(&mut lua)?;
-    run_ecs_example(&mut lua, &mut world, factory.clone())?;
+
+    let script_path = concat!(env!("CARGO_MANIFEST_DIR"), "/scripts/ecs_example.lua");
+    init_script(&mut lua, script_path, &mut world, factory.clone())?;
 
     let mut encoder: gfx::Encoder<gfx_device::Resources, gfx_device::CommandBuffer> =
         factory.create_command_buffer().into();
 
     let mut running = true;
     while running {
+        let start = std::time::Instant::now();
         events_loop.poll_events(|event| {
             if let glutin::Event::WindowEvent { event, .. } = event {
                 match event {
@@ -151,6 +157,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         });
 
+        // ------ //
+        // Update //
+        // ------ //
+
+        script_on_update(&mut lua, &mut world, factory.clone())?;
+
+        // ------ //
+        // Render //
+        // ------ //
+
         encoder.clear(&render_target, BLACK.into());
         encoder.clear_depth(&depth_stencil, 1.0);
 
@@ -160,6 +176,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         window.swap_buffers().unwrap();
         device.cleanup();
         world.maintain();
+
+        world.insert(DeltaTime::new(start.elapsed()));
     }
 
     println!("Done!");
@@ -215,50 +233,81 @@ fn run_maths_example(lua: &mut rlua::Lua) -> rlua::Result<()> {
     })
 }
 
-fn run_ecs_example(
+fn script_on_update(
     lua: &mut rlua::Lua,
     world: &mut World,
     factory: gfx_device::Factory,
 ) -> rlua::Result<()> {
-    let sample_entity = world
-        .create_entity()
-        .with(linear::Transform::default())
-        .build();
+    let dt = world.read_resource::<DeltaTime>().as_secs();
     let ecs_proxy = ecs::EcsProxy::new(world.system_data(), factory);
 
     lua.context(|lua_ctx| {
-        lua_ctx
-            .load(
-                r#"
-            print(tostring(example_entity))
-
-            function on_update(delta_time)
-                -- get transform component
-                print(tostring(example_entity))
-                print(tostring(proxy))
-                local transform = proxy:get_transform(example_entity)
-                if transform then
-                    print("Transform { " .. tostring(transform:get_position()) .. "}")
-                else
-                    print("No transform found for " .. tostring(example_entity))
-                end
-
-                print("create_square_lazy " .. tostring(proxy:create_square_lazy('red')))
-            end
-
-            "#,
-            )
-            .eval::<()>()?;
-
         lua_ctx.scope(|scope| {
             let globals = lua_ctx.globals();
-            globals.set("example_entity", ecs::EntityId::from(sample_entity))?;
 
             let proxy_user_data = scope.create_nonstatic_userdata(ecs_proxy)?;
             globals.set("proxy", proxy_user_data)?;
 
             let update = globals.get::<_, rlua::Function>("on_update")?;
-            update.call(0.016)?;
+            println!("Rust: on_update({})", dt);
+            update.call(dt)?;
+
+            Ok(())
+        })?;
+
+        Ok(())
+    })
+}
+
+fn load_script<P>(path: P) -> Option<String>
+where
+    P: AsRef<std::path::Path>,
+{
+    use std::io::prelude::*;
+    let p = path.as_ref();
+    let mut file = std::fs::File::open(p).unwrap();
+    let mut buf = String::new();
+    match file.read_to_string(&mut buf) {
+        Ok(_count) => Some(buf),
+        Err(err) => {
+            eprintln!(
+                "failed loading script at '{}': {}",
+                p.to_string_lossy(),
+                err
+            );
+            None
+        }
+    }
+}
+
+fn init_script<P>(
+    lua: &mut rlua::Lua,
+    path: P,
+    world: &mut World,
+    factory: gfx_device::Factory,
+) -> rlua::Result<()>
+where
+    P: AsRef<std::path::Path>,
+{
+    println!("Initialize script '{}'", path.as_ref().to_string_lossy());
+    let script = load_script(path).expect("failed loading script");
+
+    let ecs_proxy = ecs::EcsProxy::new(world.system_data(), factory);
+
+    lua.context(|lua_ctx| {
+        lua_ctx.load(&script).eval()?;
+
+        lua_ctx.scope(|scope| {
+            let globals = lua_ctx.globals();
+
+            // Borrow native resources
+            let proxy_user_data = scope.create_nonstatic_userdata(ecs_proxy)?;
+            globals.set("proxy", proxy_user_data)?;
+
+            // Allow script to initialise itself
+            let on_init = globals.get::<_, rlua::Function>("on_init")?;
+            println!("Rust: on_init()");
+            on_init.call(())?;
 
             Ok(())
         })?;

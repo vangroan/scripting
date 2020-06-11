@@ -95,8 +95,8 @@ impl Default for Transform {
 
 impl Transform {
     pub fn matrix(&self) -> na::Matrix4<f32> {
-        let m = na::Matrix4::identity();
-        m.append_translation(self.position.as_ref());
+        let mut m = na::Matrix4::identity();
+        m.append_translation_mut(self.position.as_ref());
         m
     }
 }

@@ -107,8 +107,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             },
                         ..
                     } => running = false,
-                    glutin::WindowEvent::Resized(_logical_size) => { /* TODO */ }
-                    glutin::WindowEvent::HiDpiFactorChanged(_dpi) => { /* TODO */ }
+                    glutin::WindowEvent::Resized(logical_size) => {
+                        if let Some(device_dim) = world.remove::<DeviceDimensions>() {
+                            let device_dim = device_dim.with_logical_size(logical_size);
+                            world.insert(ViewPort::from_device_dimentions(&device_dim));
+                            world.insert(device_dim);
+                        }
+                    }
+                    glutin::WindowEvent::HiDpiFactorChanged(dpi) => {
+                        if let Some(device_dim) = world.remove::<DeviceDimensions>() {
+                            world.insert(device_dim.with_dpi(dpi));
+                        }
+                    }
                     _ => {}
                 }
             }

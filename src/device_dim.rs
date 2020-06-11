@@ -1,6 +1,7 @@
 use glutin::dpi::{LogicalSize, PhysicalSize};
 use glutin::WindowedContext;
 
+/// Stores the size and pixel density of the current main window.
 #[derive(Debug)]
 pub struct DeviceDimensions {
     pub(crate) dpi_factor: f64,
@@ -25,6 +26,28 @@ impl DeviceDimensions {
             Some(logical_size) => Some(DeviceDimensions::new(dpi_factor, logical_size)),
             // Window no longer exists
             None => None,
+        }
+    }
+
+    /// Creates a new DeviceDimensions with the given logical size.
+    pub fn with_logical_size<S>(self, logical_size: S) -> Self
+    where
+        S: Into<LogicalSize>,
+    {
+        let s = logical_size.into();
+        DeviceDimensions {
+            logical_size: s,
+            physical_size: s.to_physical(self.dpi_factor),
+            ..self
+        }
+    }
+
+    /// Creates a new DeviceDimensions with the given dpi_factor.
+    pub fn with_dpi(self, dpi_factor: f64) -> Self {
+        DeviceDimensions {
+            dpi_factor,
+            physical_size: self.logical_size.to_physical(dpi_factor),
+            ..self
         }
     }
 

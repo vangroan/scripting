@@ -3,18 +3,33 @@
 use crate::linear::*;
 use rlua::{MetaMethod, UserData, UserDataMethods};
 use specs::prelude::*;
+use std::marker::PhantomData;
 
-pub struct EcsProxy<'a> {
+pub struct EcsProxy<'a, F: gfx::Factory<R>, R: gfx::Resources> {
     data: ScriptSystemData<'a>,
+    factory: F,
+    _resources: PhantomData<R>,
 }
 
-impl<'a> EcsProxy<'a> {
-    pub fn new(data: ScriptSystemData<'a>) -> Self {
-        EcsProxy { data }
+impl<'a, F, R> EcsProxy<'a, F, R>
+where
+    F: gfx::Factory<R>,
+    R: gfx::Resources,
+{
+    pub fn new(data: ScriptSystemData<'a>, factory: F) -> Self {
+        EcsProxy {
+            data,
+            factory,
+            _resources: PhantomData,
+        }
     }
 }
 
-impl<'a> UserData for EcsProxy<'a> {
+impl<'a, F, R> UserData for EcsProxy<'a, F, R>
+where
+    F: gfx::Factory<R>,
+    R: gfx::Resources,
+{
     fn add_methods<'lua, T: UserDataMethods<'lua, Self>>(methods: &mut T) {
         // Clonable component
         methods.add_method("get_transform", |_, proxy, entity_id: EntityId| {

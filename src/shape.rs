@@ -1,5 +1,7 @@
 use crate::{
+    camera::{Camera2D, CurrentCamera},
     colors::Color,
+    device_dim::DeviceDimensions,
     draw::Drawer,
     graphics,
     graphics::{ColorFormat, ColorSurface, Vertex},
@@ -113,6 +115,9 @@ where
 {
     pso_bundle: ReadExpect<'a, graphics::PsoBundle<R>>,
     view_port: ReadExpect<'a, ViewPort>,
+    device_dim: ReadExpect<'a, DeviceDimensions>,
+    current_camera: ReadExpect<'a, CurrentCamera>,
+    cameras: ReadStorage<'a, Camera2D>,
     transforms: ReadStorage<'a, linear::Transform>,
     squares: ReadStorage<'a, Square<R>>,
 }
@@ -139,16 +144,25 @@ where
         let ShapeDrawerData {
             pso_bundle,
             view_port,
+            device_dim,
+            current_camera,
+            cameras,
             transforms,
             squares,
         } = data;
+
+        let view_matrix = if let Some(camera2d) = cameras.get(current_camera.entity()) {
+            camera2d.matrix(&device_dim.physical_size())
+        } else {
+            na::Matrix4::identity()
+        };
 
         for (transform, square) in (&transforms, &squares).join() {
             let data = graphics::pipe::Data {
                 vbuf: square.vbuf.clone(),
                 sampler: (square.shader_view.clone(), square.sampler.clone()),
                 model: transform.matrix().into(),
-                view: na::Matrix4::identity().into(),
+                view: view_matrix.into(),
                 scissor: view_port.rect,
                 render_target: render_target.clone(),
             };

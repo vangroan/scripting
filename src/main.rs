@@ -11,6 +11,7 @@ use gfx::{traits::FactoryExt, Device};
 use glutin::{dpi::LogicalSize, Api, GlRequest};
 use specs::prelude::*;
 
+mod camera;
 mod colors;
 mod device_dim;
 mod draw;
@@ -73,9 +74,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     world.insert(ViewPort::from_device_dimentions(&device_dimensions));
     world.insert(device_dimensions);
     world.insert(graphics::PsoBundle::new(pso));
+    world.register::<camera::Camera2D>();
     world.register::<linear::Transform>();
     world.register::<physics::Velocity>();
     world.register::<shape::Square<gfx_device::Resources>>();
+
+    // Camera
+    let camera_entity = camera::create_camera2d(&mut world);
+    world.insert(camera::CurrentCamera::new(camera_entity));
 
     // Renderers
     let mut shape_renderer = shape::ShapeDrawer::new();
@@ -119,6 +125,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             world.insert(device_dim.with_dpi(dpi));
                         }
                     }
+                    glutin::WindowEvent::KeyboardInput {
+                        input:
+                            glutin::KeyboardInput {
+                                virtual_keycode, ..
+                            },
+                        ..
+                    } => match virtual_keycode {
+                        Some(glutin::VirtualKeyCode::A) => {
+                            world.exec(|mut cameras: WriteStorage<camera::Camera2D>| {
+                                for mut cam in (&mut cameras).join() {
+                                    let new_position = linear::Vector3f::new(
+                                        cam.eye.x() - 0.001,
+                                        cam.eye.y(),
+                                        cam.eye.z(),
+                                    );
+                                    cam.eye = new_position;
+                                }
+                            });
+                        }
+                        _ => {}
+                    },
                     _ => {}
                 }
             }

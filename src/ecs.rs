@@ -1,6 +1,6 @@
 //! Interface between lua and specs
 
-use crate::linear::*;
+use crate::{colors, linear::*, shape};
 use rlua::{MetaMethod, UserData, UserDataMethods};
 use specs::prelude::*;
 use std::marker::PhantomData;
@@ -41,6 +41,18 @@ where
         });
 
         methods.add_meta_method(MetaMethod::ToString, |_, _proxy, ()| Ok("EcsProxy"));
+
+        methods.add_method_mut("create_square", |_, proxy, color_name: String| {
+            if let Some(color) = colors::color_from_name(color_name) {
+                Ok(Some(shape::Square::new(
+                    &mut proxy.factory,
+                    [1.0, 1.0],
+                    color,
+                )))
+            } else {
+                Ok(None)
+            }
+        });
     }
 }
 
@@ -48,6 +60,7 @@ where
 pub struct ScriptSystemData<'a> {
     entities: specs::Entities<'a>,
     transforms: WriteStorage<'a, Transform>,
+    squares: WriteStorage<'a, shape::Square<gfx_device::Resources>>,
 }
 
 /// New type for specs entity to allow implementing traits.

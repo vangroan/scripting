@@ -11,15 +11,17 @@ use gfx::{traits::FactoryExt, Device};
 use glutin::{dpi::LogicalSize, Api, GlRequest};
 use specs::prelude::*;
 
+mod colors;
+mod draw;
 mod ecs;
 mod graphics;
 mod linear;
 mod modding;
 mod physics;
+mod shape;
 
+use colors::*;
 use graphics::{ColorFormat, DepthFormat};
-
-const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting!");
@@ -61,6 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut world = World::new();
     world.register::<linear::Transform>();
     world.register::<physics::Velocity>();
+    world.register::<shape::Square<gfx_device::Resources>>();
 
     // Global scripting VM
     let mut lua = rlua::Lua::new();
@@ -94,7 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         });
 
-        encoder.clear(&render_target, BLACK);
+        encoder.clear(&render_target, BLACK.into());
         encoder.clear_depth(&depth_stencil, 1.0);
 
         encoder.flush(&mut device);
@@ -183,6 +186,8 @@ fn run_ecs_example(
                 else
                     print("No transform found for " .. tostring(example_entity))
                 end
+
+                print(tostring(proxy:create_square('red')))
             end
 
             "#,

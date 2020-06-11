@@ -3,6 +3,7 @@ use gfx;
 
 pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
+pub type ColorSurface = <ColorFormat as gfx::format::Formatted>::Surface;
 
 gfx_defines! {
     vertex Vertex {

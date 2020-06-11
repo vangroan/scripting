@@ -24,7 +24,7 @@ impl ViewPort {
         }
     }
 
-    pub fn from_device_dimentions(device_dim: &DeviceDimensions) -> Self {
+    pub fn from_device_dimensions(device_dim: &DeviceDimensions) -> Self {
         let glutin::dpi::PhysicalSize { width, height } = device_dim.physical_size();
         ViewPort::new((*width as u16, *height as u16))
     }

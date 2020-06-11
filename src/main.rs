@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ECS World Setup
     let mut world = World::new();
-    world.insert(ViewPort::from_device_dimentions(&device_dimensions));
+    world.insert(ViewPort::from_device_dimensions(&device_dimensions));
     world.insert(device_dimensions);
     world.insert(graphics::PsoBundle::new(pso));
     world.register::<camera::Camera2D>();
@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     glutin::WindowEvent::Resized(logical_size) => {
                         if let Some(device_dim) = world.remove::<DeviceDimensions>() {
                             let device_dim = device_dim.with_logical_size(logical_size);
-                            world.insert(ViewPort::from_device_dimentions(&device_dim));
+                            world.insert(ViewPort::from_device_dimensions(&device_dim));
                             world.insert(device_dim);
                         }
                     }

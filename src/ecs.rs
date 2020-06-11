@@ -1,6 +1,6 @@
 //! Interface between lua and specs
 
-use crate::{colors, linear::*, shape};
+use crate::{colors, linear, shape};
 use rlua::{MetaMethod, UserData, UserDataMethods};
 use specs::prelude::*;
 use std::marker::PhantomData;
@@ -42,13 +42,16 @@ where
 
         methods.add_meta_method(MetaMethod::ToString, |_, _proxy, ()| Ok("EcsProxy"));
 
-        methods.add_method_mut("create_square", |_, proxy, color_name: String| {
+        methods.add_method_mut("create_square_lazy", |_, proxy, color_name: String| {
             if let Some(color) = colors::color_from_name(color_name) {
-                Ok(Some(shape::Square::new(
-                    &mut proxy.factory,
-                    [1.0, 1.0],
-                    color,
-                )))
+                let entity_id = proxy
+                    .data
+                    .lazy
+                    .create_entity(&proxy.data.entities)
+                    .with(shape::Square::new(&mut proxy.factory, [1.0, 1.0], color).unwrap())
+                    .with(linear::Transform::default())
+                    .build();
+                Ok(Some(EntityId::from(entity_id)))
             } else {
                 Ok(None)
             }
@@ -59,7 +62,8 @@ where
 #[derive(SystemData)]
 pub struct ScriptSystemData<'a> {
     entities: specs::Entities<'a>,
-    transforms: WriteStorage<'a, Transform>,
+    lazy: Read<'a, LazyUpdate>,
+    transforms: WriteStorage<'a, linear::Transform>,
     squares: WriteStorage<'a, shape::Square<gfx_device::Resources>>,
 }
 

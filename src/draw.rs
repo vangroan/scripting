@@ -1,14 +1,17 @@
-use gfx::Encoder;
+use gfx::{handle::RenderTargetView, Encoder};
 use specs::prelude::*;
 
-pub trait Drawer<'a> {
+pub trait Drawer<'a, R, C, Cf>
+where
+    R: gfx::Resources,
+    C: gfx::CommandBuffer<R>,
+{
     type SystemData: SystemData<'a>;
-    type Resources: gfx::Resources;
-    type CommandBuffer: gfx::CommandBuffer<Self::Resources>;
 
     fn draw(
         &mut self,
-        encoder: Encoder<Self::Resources, Self::CommandBuffer>,
+        encoder: &mut Encoder<R, C>,
+        render_target: &RenderTargetView<R, Cf>,
         data: Self::SystemData,
     );
 }

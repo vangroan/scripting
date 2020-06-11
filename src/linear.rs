@@ -38,6 +38,24 @@ impl From<na::Vector3<f32>> for Vector3f {
     }
 }
 
+impl Into<na::Vector3<f32>> for Vector3f {
+    fn into(self) -> na::Vector3<f32> {
+        self.0
+    }
+}
+
+impl AsRef<na::Vector3<f32>> for Vector3f {
+    fn as_ref(&self) -> &na::Vector3<f32> {
+        &self.0
+    }
+}
+
+impl Into<[f32; 3]> for Vector3f {
+    fn into(self) -> [f32; 3] {
+        self.0.into()
+    }
+}
+
 impl fmt::Debug for Vector3f {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Vector3f({}, {}, {})", self.x(), self.y(), self.z())
@@ -72,6 +90,14 @@ impl Default for Transform {
         Transform {
             position: Vector3f::zero(),
         }
+    }
+}
+
+impl Transform {
+    pub fn matrix(&self) -> na::Matrix4<f32> {
+        let m = na::Matrix4::identity();
+        m.append_translation(self.position.as_ref());
+        m
     }
 }
 

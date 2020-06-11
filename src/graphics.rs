@@ -5,6 +5,21 @@ pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 pub type ColorSurface = <ColorFormat as gfx::format::Formatted>::Surface;
 
+pub struct PsoBundle<R: gfx::Resources>(gfx::PipelineState<R, pipe::Meta>);
+
+impl<R> PsoBundle<R>
+where
+    R: gfx::Resources,
+{
+    pub fn new(pso: gfx::PipelineState<R, pipe::Meta>) -> Self {
+        PsoBundle(pso)
+    }
+
+    pub fn pso(&self) -> &gfx::PipelineState<R, pipe::Meta> {
+        &self.0
+    }
+}
+
 gfx_defines! {
     vertex Vertex {
         pos: [f32; 3] = "a_Pos",

@@ -12,6 +12,7 @@ use glutin::{dpi::LogicalSize, Api, GlRequest};
 use specs::prelude::*;
 
 mod colors;
+mod device_dim;
 mod draw;
 mod ecs;
 mod graphics;
@@ -19,9 +20,13 @@ mod linear;
 mod modding;
 mod physics;
 mod shape;
+mod view_port;
 
 use colors::*;
+use device_dim::*;
+use draw::Drawer;
 use graphics::{ColorFormat, DepthFormat};
+use view_port::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting!");
@@ -34,8 +39,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_gl(GlRequest::Specific(Api::OpenGl, (3, 2)))
         .with_vsync(true);
     let mut events_loop = glutin::EventsLoop::new();
-    let (window, mut device, mut factory, render_target, mut depth_stencil) =
+    let (window, mut device, mut factory, render_target, depth_stencil) =
         gfx_glutin::init::<ColorFormat, DepthFormat>(windowbuilder, contextbuilder, &events_loop)?;
+
+    let device_dimensions = DeviceDimensions::from_window(&window).unwrap();
 
     // Load shaders
     let shader_program = factory
@@ -52,18 +59,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     // Pipeline State Object
-    let pso = factory.create_pipeline_from_program(
-        &shader_program,
-        gfx::Primitive::TriangleList,
-        gfx::state::Rasterizer::new_fill().with_cull_back(),
-        graphics::pipe::new(),
-    );
+    let pso = factory
+        .create_pipeline_from_program(
+            &shader_program,
+            gfx::Primitive::TriangleList,
+            gfx::state::Rasterizer::new_fill().with_cull_back(),
+            graphics::pipe::new(),
+        )
+        .unwrap();
 
     // ECS World Setup
     let mut world = World::new();
+    world.insert(ViewPort::from_device_dimentions(&device_dimensions));
+    world.insert(device_dimensions);
+    world.insert(graphics::PsoBundle::new(pso));
     world.register::<linear::Transform>();
     world.register::<physics::Velocity>();
     world.register::<shape::Square<gfx_device::Resources>>();
+
+    // Renderers
+    let mut shape_renderer = shape::ShapeDrawer::new();
 
     // Global scripting VM
     let mut lua = rlua::Lua::new();
@@ -92,6 +107,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             },
                         ..
                     } => running = false,
+                    glutin::WindowEvent::Resized(_logical_size) => { /* TODO */ }
+                    glutin::WindowEvent::HiDpiFactorChanged(_dpi) => { /* TODO */ }
                     _ => {}
                 }
             }
@@ -99,6 +116,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         encoder.clear(&render_target, BLACK.into());
         encoder.clear_depth(&depth_stencil, 1.0);
+
+        shape_renderer.draw(&mut encoder, &render_target, world.system_data());
 
         encoder.flush(&mut device);
         window.swap_buffers().unwrap();
@@ -187,7 +206,7 @@ fn run_ecs_example(
                     print("No transform found for " .. tostring(example_entity))
                 end
 
-                print(tostring(proxy:create_square('red')))
+                print("create_square_lazy " .. tostring(proxy:create_square_lazy('red')))
             end
 
             "#,

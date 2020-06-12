@@ -5,6 +5,8 @@ pub type ColorFormat = gfx::format::Rgba8;
 pub type DepthFormat = gfx::format::DepthStencil;
 pub type ColorSurface = <ColorFormat as gfx::format::Formatted>::Surface;
 
+/// New type wrapper for the pipeline state object so it can be easily
+/// stored in the world.
 pub struct PsoBundle<R: gfx::Resources>(gfx::PipelineState<R, pipe::Meta>);
 
 impl<R> PsoBundle<R>

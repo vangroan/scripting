@@ -42,20 +42,25 @@ where
 
         methods.add_meta_method(MetaMethod::ToString, |_, _proxy, ()| Ok("EcsProxy"));
 
-        methods.add_method_mut("create_square_lazy", |_, proxy, color_name: String| {
-            if let Some(color) = colors::color_from_name(color_name) {
-                let entity_id = proxy
-                    .data
-                    .lazy
-                    .create_entity(&proxy.data.entities)
-                    .with(shape::Square::new(&mut proxy.factory, [1.0, 1.0], color).unwrap())
-                    .with(linear::Transform::default())
-                    .build();
-                Ok(Some(EntityId::from(entity_id)))
-            } else {
-                Ok(None)
-            }
-        });
+        methods.add_method_mut(
+            "create_square_lazy",
+            |_, proxy, (width, height, color_name): (f32, f32, String)| {
+                if let Some(color) = colors::color_from_name(color_name) {
+                    let entity_id = proxy
+                        .data
+                        .lazy
+                        .create_entity(&proxy.data.entities)
+                        .with(
+                            shape::Square::new(&mut proxy.factory, [width, height], color).unwrap(),
+                        )
+                        .with(linear::Transform::default())
+                        .build();
+                    Ok(Some(EntityId::from(entity_id)))
+                } else {
+                    Ok(None)
+                }
+            },
+        );
 
         methods.add_method("get_current_camera", |_, proxy, ()| {
             Ok(EntityId::from(proxy.data.current_camera.entity()))

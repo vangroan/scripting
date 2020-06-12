@@ -1,6 +1,6 @@
 use crate::{
     camera::{Camera2D, CurrentCamera},
-    colors::Color,
+    colors::*,
     device_dim::DeviceDimensions,
     draw::Drawer,
     graphics,
@@ -63,11 +63,13 @@ where
         );
 
         // Generate quad mesh
+        let s = size.into();
+        let (hw, hh) = (s[0] / 2., s[1] / 2.);
         let vertices = [
-            vertex([-0.5, -0.5, 0.0], [0.0, 0.0], color.into()),
-            vertex([0.5, -0.5, 0.0], [0.0, 0.0], color.into()),
-            vertex([0.5, 0.5, 0.0], [0.0, 0.0], color.into()),
-            vertex([-0.5, 0.5, 0.0], [0.0, 0.0], color.into()),
+            vertex([-hw, -hh, 0.0], [0.0, 0.0], color),
+            vertex([hw, -hh, 0.0], [0.0, 0.0], color),
+            vertex([hw, hh, 0.0], [0.0, 0.0], color),
+            vertex([-hw, hh, 0.0], [0.0, 0.0], color),
         ];
         let indices: &[u16] = &[
             0, 1, 2, // Triangle 1
@@ -97,12 +99,15 @@ where
     }
 }
 
-fn vertex(pos: [f32; 3], uv: [f32; 2], color: [f32; 4]) -> Vertex {
+fn vertex<C>(pos: [f32; 3], uv: [f32; 2], color: C) -> Vertex
+where
+    C: Into<[f32; 4]>,
+{
     Vertex {
         pos,
         uv,
         normal: [0.0, 0.0, 1.0],
-        color,
+        color: color.into(),
     }
 }
 
@@ -152,7 +157,7 @@ where
         } = data;
 
         let view_matrix = if let Some(camera2d) = cameras.get(current_camera.entity()) {
-            camera2d.matrix(&device_dim.physical_size())
+            camera2d.matrix(&device_dim.logical_size())
         } else {
             na::Matrix4::identity()
         };

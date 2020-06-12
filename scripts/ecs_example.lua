@@ -10,7 +10,7 @@ local speed = 0.1
 
 function on_init()
     print("Lua: on_init()")
-    square_entity_id = proxy:create_square_lazy('red')
+    square_entity_id = proxy:create_square_lazy(0.5, 0.5, 'red')
     print("create_square_lazy " .. tostring(square_entity_id))
 end
 

@@ -1,6 +1,6 @@
 //! Interface between lua and specs
 
-use crate::{camera, colors, delta_time, linear, shape};
+use crate::{camera, colors, delta_time, input, linear, shape};
 use rlua::{MetaMethod, UserData, UserDataMethods};
 use specs::prelude::*;
 use std::marker::PhantomData;
@@ -75,6 +75,15 @@ where
                 Ok(())
             },
         );
+
+        methods.add_method("is_key_pressed", |_, proxy, key: u32| {
+            let is_pressed = input::virtual_key_code_from_int(key)
+                .and_then(|code| proxy.data.input_map.virtual_key_code(code))
+                .map(|state| state == glutin::ElementState::Pressed)
+                .unwrap_or(false);
+            // println!("Is Key Pressed {} {}", key, is_pressed);
+            Ok(is_pressed)
+        });
     }
 }
 
@@ -84,6 +93,7 @@ pub struct ScriptSystemData<'a> {
     lazy: Read<'a, LazyUpdate>,
     delta_time: ReadExpect<'a, delta_time::DeltaTime>,
     current_camera: ReadExpect<'a, camera::CurrentCamera>,
+    input_map: ReadExpect<'a, input::InputStateMap>,
     transforms: WriteStorage<'a, linear::Transform>,
     squares: WriteStorage<'a, shape::Square<gfx_device::Resources>>,
     cameras: WriteStorage<'a, camera::Camera2D>,

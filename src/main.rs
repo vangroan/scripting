@@ -18,6 +18,7 @@ mod device_dim;
 mod draw;
 mod ecs;
 mod graphics;
+mod input;
 mod linear;
 mod modding;
 mod physics;
@@ -73,6 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ECS World Setup
     let mut world = World::new();
+    world.insert(input::InputStateMap::new());
     world.insert(DeltaTime::new(std::time::Duration::new(0, 0)));
     world.insert(ViewPort::from_device_dimensions(&device_dimensions));
     world.insert(device_dimensions);
@@ -91,6 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Global scripting VM
     let mut lua = rlua::Lua::new();
+    input::set_virtual_key_codes(&mut lua)?;
     create_interface(&mut lua)?;
 
     let mod_hub = modding::ModHub::new();
@@ -107,6 +110,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut running = true;
     while running {
         let start = std::time::Instant::now();
+
+        world.write_resource::<input::InputStateMap>().clear();
         events_loop.poll_events(|event| {
             if let glutin::Event::WindowEvent { event, .. } = event {
                 match event {
@@ -153,24 +158,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     glutin::WindowEvent::KeyboardInput {
                         input:
                             glutin::KeyboardInput {
-                                virtual_keycode, ..
+                                virtual_keycode,
+                                state,
+                                ..
                             },
                         ..
-                    } => match virtual_keycode {
-                        Some(glutin::VirtualKeyCode::A) => {
-                            world.exec(|mut cameras: WriteStorage<camera::Camera2D>| {
-                                for mut cam in (&mut cameras).join() {
-                                    let new_position = linear::Vector3f::new(
-                                        cam.eye.x() - 0.001,
-                                        cam.eye.y(),
-                                        cam.eye.z(),
-                                    );
-                                    cam.eye = new_position;
-                                }
-                            });
+                    } => {
+                        if let Some(code) = virtual_keycode {
+                            println!("Setting virtual key code {:?}", code);
+                            world
+                                .write_resource::<input::InputStateMap>()
+                                .set_virtual_key_code(code, state);
                         }
-                        _ => {}
-                    },
+
+                        match virtual_keycode {
+                            Some(glutin::VirtualKeyCode::A) => {
+                                world.exec(|mut cameras: WriteStorage<camera::Camera2D>| {
+                                    for mut cam in (&mut cameras).join() {
+                                        let new_position = linear::Vector3f::new(
+                                            cam.eye.x() - 0.001,
+                                            cam.eye.y(),
+                                            cam.eye.z(),
+                                        );
+                                        cam.eye = new_position;
+                                    }
+                                });
+                            }
+                            _ => {}
+                        }
+                    }
                     _ => {}
                 }
             }

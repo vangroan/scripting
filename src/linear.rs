@@ -81,6 +81,21 @@ impl UserData for Vector3f {
         methods.add_meta_function(MetaMethod::ToString, |_, vec: Vector3f| {
             Ok(format!("{:?}", vec))
         });
+
+        methods.add_method_mut("set_x", |_, vec, value: f32| {
+            vec.0.x = value;
+            Ok(())
+        });
+
+        methods.add_method_mut("set_y", |_, vec, value: f32| {
+            vec.0.y = value;
+            Ok(())
+        });
+
+        methods.add_method_mut("set_z", |_, vec, value: f32| {
+            vec.0.z = value;
+            Ok(())
+        });
     }
 }
 

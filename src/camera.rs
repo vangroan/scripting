@@ -1,5 +1,5 @@
 use crate::linear;
-use glutin::dpi::PhysicalSize;
+use glutin::dpi::LogicalSize;
 use nalgebra as na;
 use specs::prelude::*;
 
@@ -21,14 +21,9 @@ impl Camera2D {
     }
 
     /// Creates a view matrix from the camera that can be used for rendering.
-    ///
-    /// TODO: Physical size may not be correct as render changes size between monitors. May need to be logical size.
-    pub fn matrix(&self, device_physical_size: &PhysicalSize) -> na::Matrix4<f32> {
+    pub fn matrix(&self, device_size: &LogicalSize) -> na::Matrix4<f32> {
         // Scale factor
-        let (w, h) = (
-            device_physical_size.width as f32,
-            device_physical_size.height as f32,
-        );
+        let (w, h) = (device_size.width as f32, device_size.height as f32);
         let (sw, sh) = (2. / w, 2. / h);
 
         // World position offset

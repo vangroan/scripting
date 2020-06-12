@@ -1,6 +1,8 @@
 pub const BLACK: Color = Color([0.0, 0.0, 0.0, 1.0]);
 pub const WHITE: Color = Color([1.0, 1.0, 1.0, 1.0]);
 pub const RED: Color = Color([1.0, 0.0, 0.0, 1.0]);
+pub const GREEN: Color = Color([0.0, 1.0, 0.0, 1.0]);
+pub const BLUE: Color = Color([0.0, 0.0, 1.0, 1.0]);
 
 pub fn color_from_name<S>(color_name: S) -> Option<Color>
 where
@@ -10,6 +12,8 @@ where
         "black" => Some(BLACK),
         "white" => Some(WHITE),
         "red" => Some(RED),
+        "green" => Some(GREEN),
+        "blue" => Some(BLUE),
         _ => None,
     }
 }

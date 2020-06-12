@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_gl(GlRequest::Specific(Api::OpenGl, (3, 2)))
         .with_vsync(true);
     let mut events_loop = glutin::EventsLoop::new();
-    let (window, mut device, mut factory, render_target, depth_stencil) =
+    let (window, mut device, mut factory, mut render_target, mut depth_stencil) =
         gfx_glutin::init::<ColorFormat, DepthFormat>(windowbuilder, contextbuilder, &events_loop)?;
 
     let device_dimensions = DeviceDimensions::from_window(&window).unwrap();
@@ -120,9 +120,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         ..
                     } => running = false,
                     glutin::WindowEvent::Resized(logical_size) => {
+                        // Coordinates use physical size
+                        let dpi_factor = window.window().get_hidpi_factor();
+                        let physical_size = logical_size.to_physical(dpi_factor);
+
+                        // Required by some platforms
+                        window.resize(physical_size);
+
+                        // Update dimensions of frame buffer targets
+                        gfx_glutin::update_views(&window, &mut render_target, &mut depth_stencil);
+
                         if let Some(device_dim) = world.remove::<DeviceDimensions>() {
                             let device_dim = device_dim.with_logical_size(logical_size);
-                            world.insert(ViewPort::from_device_dimensions(&device_dim));
+                            let view_port = ViewPort::from_device_dimensions(&device_dim);
+                            println!(
+                                "Resized {:?} {:?} dpi({}) {:?}",
+                                logical_size,
+                                device_dim.physical_size(),
+                                device_dim.dpi_factor(),
+                                view_port
+                            );
+
+                            world.insert(view_port);
                             world.insert(device_dim);
                         }
                     }
@@ -249,7 +268,7 @@ fn script_on_update(
             globals.set("proxy", proxy_user_data)?;
 
             let update = globals.get::<_, rlua::Function>("on_update")?;
-            println!("Rust: on_update({})", dt);
+            // println!("Rust: on_update({})", dt);
             update.call(dt)?;
 
             Ok(())

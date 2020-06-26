@@ -204,6 +204,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69323bff1fb41c635347b8ead484a5ca6c3f11914d784170b158d8449ab07f8e"
+dependencies = [
+ "cfg-if",
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-epoch",
+ "crossbeam-queue",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cced8691919c02aac3cb0a1bc2e9b73d89e832bf9a06fc579d4e71b68a2da061"
+dependencies = [
+ "crossbeam-utils",
+ "maybe-uninit",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1126,6 +1150,7 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 name = "scripting"
 version = "0.1.0"
 dependencies = [
+ "crossbeam",
  "gfx",
  "gfx_device_gl",
  "gfx_window_glutin",
@@ -1134,6 +1159,7 @@ dependencies = [
  "nalgebra",
  "rlua",
  "serde",
+ "shred",
  "shred-derive",
  "slog",
  "specs",
@@ -1181,6 +1207,7 @@ dependencies = [
  "hashbrown",
  "mopa",
  "rayon",
+ "shred-derive",
  "smallvec 1.4.0",
  "tynm",
 ]

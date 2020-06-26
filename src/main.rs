@@ -22,6 +22,7 @@ mod input;
 mod linear;
 mod modding;
 mod physics;
+mod scriptable;
 mod shape;
 mod view_port;
 
@@ -100,6 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", mod_hub.settings());
 
     run_maths_example(&mut lua)?;
+    test_scriptable_systems(&mut world)?;
 
     let script_path = concat!(env!("CARGO_MANIFEST_DIR"), "/scripts/ecs_example.lua");
     init_script(&mut lua, script_path, &mut world, factory.clone())?;
@@ -349,4 +351,85 @@ where
 
         Ok(())
     })
+}
+
+fn test_scriptable_systems(world: &mut World) -> rlua::Result<()> {
+    println!("======== test_scriptable_systems ========");
+    use crossbeam::channel::{bounded, Receiver, Sender};
+    use rlua::{prelude::*, Function, Table};
+
+    use scriptable::*;
+
+    let mut lua = rlua::Lua::new();
+    let (tx, rx): (Sender<Lua>, Receiver<Lua>) = bounded(1);
+    let mut builder = DispatcherBuilder::new();
+    // .with(ScriptSystem::new(tx.clone(), rx.clone(), ), "system_a", &[])
+
+    let script = r#"
+
+    local counter = 0
+
+    systems = {
+        process_a = {
+            reads = {},
+            writes = {},
+            run = function(data)
+                print("processing system_a " .. tostring(counter))
+                counter = counter + 1
+            end,
+        },
+    }
+    
+    "#;
+
+    lua.context(|lua_ctx| {
+        // Load script
+        lua_ctx.load(script).exec()?;
+
+        Ok(())
+    })?;
+
+    lua.context(|lua_ctx| {
+        let globals = lua_ctx.globals();
+        let systems: Table = globals.get("systems")?;
+
+        for pair in systems.pairs::<String, Table>() {
+            let (_name, table) = pair?;
+            let _reads: Table = table.get("reads")?;
+            let _writes: Table = table.get("writes")?;
+            let run_func: Function = table.get("run")?;
+            let callback_key = lua_ctx.create_registry_value(run_func)?;
+            builder.add_thread_local(ScriptSystem::new(
+                tx.clone(),
+                rx.clone(),
+                callback_key,
+                &[],
+                &[],
+            ));
+        }
+
+        Ok(())
+    })?;
+
+    let mut dispatcher = builder.build();
+    dispatcher.setup(world);
+
+    // Example process
+    println!("Running");
+    let mut lua_swap = Some(lua);
+
+    for _ in 0..10 {
+        tx.send(lua_swap.take().unwrap()).unwrap();
+        dispatcher.run_now(world);
+        lua_swap = Some(rx.recv().unwrap());
+    }
+
+    lua_swap.unwrap().context(|lua_ctx| {
+        // Clean up registry values
+        lua_ctx.expire_registry_values();
+
+        Ok(())
+    })?;
+
+    Ok(())
 }
